@@ -1,0 +1,90 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'pyproject.toml'
+      - 'index.js'
+      - 'looba_mcp/**'
+      - 'scripts/**'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  npm:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Read local version
+        id: local
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version exists on npm
+        id: check
+        run: |
+          if npm view looba-mcp@${{ steps.local.outputs.version }} version > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "looba-mcp@${{ steps.local.outputs.version }} already on npm — skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Will publish looba-mcp@${{ steps.local.outputs.version }} to npm."
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.exists == 'false'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Read local version
+        id: local
+        run: echo "version=$(grep -m1 '^version' pyproject.toml | cut -d'\"' -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version exists on PyPI
+        id: check
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://pypi.org/pypi/looba-mcp/${{ steps.local.outputs.version }}/json")
+          if [ "$STATUS" = "200" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "looba-mcp ${{ steps.local.outputs.version }} already on PyPI — skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Will publish looba-mcp ${{ steps.local.outputs.version }} to PyPI."
+          fi
+
+      - name: Install build tools
+        if: steps.check.outputs.exists == 'false'
+        run: pip install --upgrade build twine
+
+      - name: Build distribution
+        if: steps.check.outputs.exists == 'false'
+        run: python -m build
+
+      - name: Publish
+        if: steps.check.outputs.exists == 'false'
+        run: twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
