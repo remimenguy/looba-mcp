@@ -11,6 +11,10 @@ on:
       - 'scripts/**'
   workflow_dispatch:
 
+# Limit GITHUB_TOKEN to read-only — secrets are passed explicitly per job
+permissions:
+  contents: read
+
 concurrency:
   group: publish-${{ github.ref }}
   cancel-in-progress: false
