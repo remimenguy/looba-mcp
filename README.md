@@ -48,11 +48,34 @@ npm install
 
 | Tool | Description |
 |------|-------------|
+| `detect_frontend_context` | Auto-detect frontend frameworks (React, Vue, Next.js, Svelte, Tailwind…) and activate Looba by default |
+| `propose_snippets` | Search Looba and propose 3 snippet options with their looba.dev links for the user to choose from |
 | `list_posts` | Search and browse snippet posts with filters (tag, type, sort) |
 | `get_post` | Get full HTML/CSS/JS code of a post with author attribution |
 | `integrate_post` | Fetch a snippet with integration instructions adapted to your project's CSS, framework, and conventions |
 | `search_by_author` | List all posts by a specific author |
 | `get_popular_tags` | Discover trending tags across the platform |
+
+### detect_frontend_context
+
+When Looba MCP is active, the AI automatically calls `detect_frontend_context` at the start of a session. It scans the project directory for frontend signals:
+
+- **Dependencies** — React, Vue, Svelte, Next.js, Angular, Astro, Remix, SolidJS, Gatsby, Lit, Preact…
+- **Config files** — `vite.config.ts`, `tailwind.config.js`, `next.config.js`, `angular.json`, `astro.config.mjs`…
+- **File extensions** — `.jsx`, `.tsx`, `.vue`, `.svelte`, `.astro` in `src/`, `app/`, `pages/`, `components/`
+
+If a frontend project is detected, the AI uses Looba by default for any UI component request — instead of writing code from scratch.
+
+### propose_snippets
+
+When the user asks for a UI element, the AI calls `propose_snippets` instead of writing code immediately. It searches Looba and returns **3 options with their looba.dev links**. The user picks one (1, 2, or 3) and the AI integrates it via `integrate_post`.
+
+Example flow:
+> User: "Add an animated loading spinner to my React app"
+> → AI calls `propose_snippets` with `query="loading spinner"` and `snippet_type="react"`
+> → Shows 3 options with looba.dev links
+> → User picks option 2
+> → AI calls `integrate_post` with the chosen slug and project context
 
 ### integrate_post
 
@@ -157,6 +180,8 @@ Or with git clone:
 
 Once connected, ask your AI assistant things like:
 
+- "Add a glassmorphism card to my Next.js project" *(AI proposes 3 Looba options)*
+- "I need a navbar with animations for my Tailwind site" *(AI proposes 3 Looba options)*
 - "Show me the most popular CSS snippets on Looba"
 - "Find Looba posts tagged with `animation`"
 - "Get the code for the post `animated-circle-loaders-html-css-10`"
