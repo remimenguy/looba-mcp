@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/looba-mcp)](https://www.npmjs.com/package/looba-mcp)
 [![PyPI](https://img.shields.io/pypi/v/looba-mcp)](https://pypi.org/project/looba-mcp/)
 [![Downloads](https://static.pepy.tech/badge/looba-mcp/month)](https://pepy.tech/project/looba-mcp)
-[![License](https://img.shields.io/github/license/Loobadev/looba-mcp)](https://github.com/Loobadev/looba-mcp/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/looba-snippet/looba-mcp)](https://github.com/looba-snippet/looba-mcp/blob/main/LICENSE)
 [![Website](https://img.shields.io/badge/website-looba.dev-1f8ceb)](https://looba.dev)
 
 An [MCP](https://modelcontextprotocol.io) server that gives AI assistants read-only access to [Looba](https://looba.dev) a community platform for UI snippets and design inspiration.
@@ -37,7 +37,7 @@ pip install looba-mcp
 ### git
 
 ```bash
-git clone https://github.com/Loobadev/looba-mcp.git
+git clone https://github.com/looba-snippet/looba-mcp.git
 cd looba-mcp
 npm install
 ```

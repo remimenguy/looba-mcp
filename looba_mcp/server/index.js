@@ -11,12 +11,33 @@ import { join } from "path";
 
 const LOOBA_ORIGIN = process.env.LOOBA_ORIGIN || "https://looba.dev";
 const MAX_LIST_LIMIT = 30;
+const MCP_CLIENT_NAME = "looba-mcp";
+const MCP_CLIENT_VERSION = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+    return String(pkg.version || "unknown");
+  } catch {
+    return "unknown";
+  }
+})();
 
 // ---------------------------------------------------------------------------
 // API client
 // ---------------------------------------------------------------------------
 
-async function api(path, params = {}) {
+function mcpApiHeaders(tool) {
+  const headers = {
+    Accept: "application/json",
+    "User-Agent": `${MCP_CLIENT_NAME}/${MCP_CLIENT_VERSION}`,
+    "x-looba-mcp-client": MCP_CLIENT_NAME,
+    "x-looba-mcp-version": MCP_CLIENT_VERSION,
+  };
+  const toolName = String(tool || "").trim();
+  if (toolName) headers["x-looba-mcp-tool"] = toolName.slice(0, 64);
+  return headers;
+}
+
+async function api(path, params = {}, { tool } = {}) {
   const url = new URL(path, LOOBA_ORIGIN);
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== "") {
@@ -24,7 +45,7 @@ async function api(path, params = {}) {
     }
   }
   const res = await fetch(url, {
-    headers: { Accept: "application/json" },
+    headers: mcpApiHeaders(tool),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
@@ -347,7 +368,7 @@ server.tool(
       sort: "popular",
       page: 1,
       limit: 3,
-    });
+    }, { tool: "propose_snippets" });
 
     const posts = data.posts || [];
 
@@ -442,7 +463,7 @@ server.tool(
       sort: sort || "popular",
       page: effectivePage,
       limit: effectiveLimit,
-    });
+    }, { tool: "list_posts" });
 
     const posts = data.posts || [];
     const total = data.total ?? posts.length;
@@ -483,7 +504,7 @@ server.tool(
       return { content: [{ type: "text", text: "Error: slug is required." }] };
     }
 
-    const data = await api("/api/snippets/one", { slug: sanitizedSlug });
+    const data = await api("/api/snippets/one", { slug: sanitizedSlug }, { tool: "get_post" });
     const post = data.post;
     const author = data.author;
 
@@ -560,7 +581,7 @@ server.tool(
       return { content: [{ type: "text", text: "Error: slug is required." }] };
     }
 
-    const data = await api("/api/snippets/one", { slug: sanitizedSlug });
+    const data = await api("/api/snippets/one", { slug: sanitizedSlug }, { tool: "integrate_post" });
     const post = data.post;
     const author = data.author;
 
@@ -697,7 +718,7 @@ server.tool(
       username: sanitizedUsername,
       page: effectivePage,
       limit: effectiveLimit,
-    });
+    }, { tool: "search_by_author" });
 
     const posts = data.posts || [];
     const total = data.pagination?.total ?? posts.length;
@@ -740,7 +761,7 @@ server.tool(
   async ({ limit }) => {
     const effectiveLimit = limit || 15;
 
-    const data = await api("/api/tags/popular", { limit: effectiveLimit });
+    const data = await api("/api/tags/popular", { limit: effectiveLimit }, { tool: "get_popular_tags" });
     const tags = data.tags || [];
 
     const lines = tags.map(
