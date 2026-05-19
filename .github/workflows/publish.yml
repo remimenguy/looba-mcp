@@ -92,3 +92,42 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+
+  deploy-server:
+    name: Deploy to mcp.looba.dev
+    runs-on: ubuntu-latest
+    needs: [npm, pypi]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/looba/looba-mcp
+            git fetch origin main
+            git reset --hard origin/main
+            sudo systemctl restart looba-mcp.service
+            sleep 2
+            systemctl is-active looba-mcp.service
+
+      - name: Verify deployed version
+        run: |
+          sleep 3
+          RESPONSE=$(curl -s -X POST https://mcp.looba.dev/ \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"1.0.0"}}}')
+          echo "Server response: $RESPONSE"
+          DEPLOYED=$(echo "$RESPONSE" | grep -oE '"version":"[^"]+"' | head -1 | cut -d'"' -f4)
+          EXPECTED=$(node -p "require('./package.json').version")
+          echo "Deployed: $DEPLOYED"
+          echo "Expected: $EXPECTED"
+          if [ "$DEPLOYED" != "$EXPECTED" ]; then
+            echo "::error::Version mismatch on mcp.looba.dev"
+            exit 1
+          fi
