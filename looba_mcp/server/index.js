@@ -252,7 +252,7 @@ function showInteractiveBanner() {
 
 const server = new McpServer({
   name: "looba",
-  version: "1.3.0",
+  version: MCP_CLIENT_VERSION,
 });
 
 // ---- Tool: detect_frontend_context ----
